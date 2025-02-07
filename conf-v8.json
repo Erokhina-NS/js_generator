@@ -1,0 +1,25 @@
+{
+    "main_path": "/home/jovyan/",
+    "src_path": "js_generator/src/",
+    "eng_name": "v8",
+    "mode": "ZERO",
+    "max_ins": 100,
+    "model": {
+      "batch_size": 128,
+      "emb_size": 32,
+      "epoch": 200,
+      "gamma": 0.9,
+      "lr": 0.1,
+      "momentum": 0.9,
+      "split_size": 64,
+      "weight_decay": 0.0001
+    },
+    "num_gpu": 1,
+    "num_proc": 20,
+    "opt": [],
+    "seed_dir": "js-test-suite/testsuite/",
+    "timeout": 20,
+    "top_k": 16
+  }
+
+

@@ -1,0 +1,127 @@
+
+    def gen_code(self, ins_cnt, printer, model):
+        # print('2   self.gen_code')
+        ################################
+        #         if first step
+        if ins_cnt == 0:
+            (seed_name, root, model_input) = self.prepare_seed(model)
+            start_root = root
+            print('seed_name='+seed_name)
+            frag, hidden, parent_idx, frag_type = model_input
+            parent_idx_prev = parent_idx
+            if parent_idx != None:
+                ins_cnt += 1
+                # print('ins_cnt='+str(ins_cnt))
+                cand_list = self.get_cand(model, model_input)
+                stack = []
+                found, variants, _ = self.append_frag(cand_list, root, stack, ins_cnt)
+                if not found:
+                    msg = 'Failed to select valid frag at %d' % ins_cnt
+                    print(msg)
+                    return None
+                elif variants != []: 
+                    for val in range(len(variants)):
+                        stack, root, frag, parent_idx, frag_type = variants[val]
+                        d = dict()
+                        # l = list()
+                        d['ins_cnt']=ins_cnt
+                        d['val']=[val]
+                        d['root']=root
+                        d['stack']=stack
+                        d['frag_seq'] = [(frag,parent_idx,frag_type)]
+                        # l.append(d)
+                        self._stack_list.append(d)  
+                    variants = []
+            else:
+                return None
+        ############################################
+        if self._stack_list:
+            for d in self._stack_list:
+                # for d in stack:
+                print("(ins_cnt={0}, val={1}, stack={2}, frag_seq={3})".format(d['ins_cnt'], d['val'], d['stack'], d['frag_seq']))   
+        # if next step
+        count_step = 1
+        while self._stack_list != [] and count_step != 10: #parent_idx != None and 
+            count_step += 1
+            print('count_step='+str(count_step))            
+            for dct in self._stack_list:
+                ins_cnt=dct['ins_cnt']
+                ins_cnt+=1
+                prev_val=dct['val']                    
+                prev_root=dct['root']
+                prev_stack=dct['stack']
+                prev_frag_seq = dct['frag_seq']
+                # try:
+                (prev_frag,prev_parent_idx,prev_frag_type) = prev_frag_seq[-1]
+                # except Exception as err:
+                #     print('prev_frag_seq[-1]!! = '+str(err))
+                #     pass
+                prev_model_input = prev_frag, hidden, prev_parent_idx, prev_frag_type
+                cand_list = self.get_cand(model, prev_model_input)
+                found, variants, variants_end = self.append_frag(cand_list, prev_root, prev_stack, ins_cnt)                
+                if not found:
+                    msg = 'Failed to select valid frag at %d' % ins_cnt
+                    pass  
+                elif variants != []:
+                    for val in range(len(variants)):
+                        stack, root, frag, parent_idx, frag_type = variants[val]                                
+                        d = dict()
+                        d['ins_cnt']=ins_cnt
+                        new_val = list()
+                        for v in prev_val:
+                            new_val.append(v)
+                        new_val.append(val)
+                        d['val']= new_val
+                        d['root']= root
+                        d['stack']= stack
+                        frag_seq_list = list()
+                        for v in prev_frag_seq:
+                            frag_seq_list.append(v)
+                        frag_seq_list.append((frag, parent_idx, frag_type))
+                        d['frag_seq'] = frag_seq_list                            
+                        self._stack_list_next.append(d)                                
+                    variants = []                        
+                elif variants_end != []:
+                    # print('variants_end='+str(variants_end))
+                    for var in variants_end:                                    
+                        stack, root, frag, parent_idx, frag_type = var 
+                        try:
+                            harness_list = self._harness.get_list(seed_name)
+                            self.resolve_errors(root, harness_list)
+                            try:
+                                root = self.postprocess(root, harness_list)
+                                # if start_root != root:
+                                    # print('4 NOTEQUAL')
+                                js_path = self.cov_check(root)
+                                if js_path != None:
+                                    print('JS_PATH=' + str(js_path))
+                                    # self._js_list.append(js_path)
+                                    return js_path
+                                else:
+                                    return None
+                                # else:
+                                #     continue
+                            except Exception as err:
+                                # print('self.postprocess_ERR=' + str(err))
+                                continue
+                        except Exception as err:
+                            # print('harness_list_ERR=' + str(err))
+                            continue
+                    variants_end = []
+                else:
+                    pass
+            self._stack_list.clear()
+            self._stack_list = self._stack_list_next.copy()
+            self._stack_list_next.clear()
+            for d in self._stack_list:
+                # print('ind='+str(ind))
+                # for d in self._stack_list[ind]:
+                print("(ins_cnt={0}, val={1}, stack={2}, frag_seq={3})".format(d['ins_cnt'], d['val'], d['stack'], d['frag_seq']))    
+            # # sys.exit(1)
+                        
+        # for d in self._stack_list:
+        #     # print('ind='+str(ind))
+        #     # for d in self._stack_list[ind]:
+        #     print("(ins_cnt={0}, val={1}, stack={2}, frag_seq={3})".format(d['ins_cnt'], d['val'], d['stack'], d['frag_seq']))    
+        # sys.exit(1)
+                    
